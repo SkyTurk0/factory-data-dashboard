@@ -1,0 +1,21 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.db
+
+# Flask
+instance/
+.env
+
+# Node
+node_modules/
+dist/
+
+# Vite
+*.local
+.vite/
+
+# Virtualenv
+.venv/
