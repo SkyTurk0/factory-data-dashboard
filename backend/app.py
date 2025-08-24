@@ -1,30 +1,36 @@
 from flask import Flask, jsonify
 from flask_cors import CORS
-import sqlite3
+from sqlalchemy import text
+from db import engine
 
 app = Flask(__name__)
 CORS(app)  # Allow frontend to connect
 
-DB_PATH = "factory.db"
-
-def query_db(query, args=(), one=False):
-    conn = sqlite3.connect(DB_PATH)
-    cursor = conn.cursor()
-    cursor.execute(query, args)
-    rows = cursor.fetchall()
-    conn.close()
-    return (rows[0] if rows else None) if one else rows
-
-@app.route("/machines", methods=["GET"])
+@app.get("/machines")
 def get_machines():
-    rows = query_db("SELECT * FROM machines")
-    machines = [{"id": r[0], "name": r[1], "status": r[2]} for r in rows]
+    sql = text("SELECT Id, Name, Status, Line FROM dbo.Machines ORDER BY Id;")
+    with engine.connect() as conn:
+        rows = conn.execute(sql).all()
+        machines = [{"id": r.Id, "name": r.Name, "status": r.Status, "line": r.Line} for r in rows]
     return jsonify(machines)
 
-@app.route("/logs/<int:machine_id>", methods=["GET"])
-def get_logs(machine_id):
-    rows = query_db("SELECT * FROM logs WHERE machine_id = ? ORDER BY timestamp DESC", (machine_id,))
-    logs = [{"id": r[0], "machine_id": r[1], "timestamp": r[2], "message": r[3]} for r in rows]
+@app.get("/logs/<int:machine_id>")
+def get_logs(machine_id: int):
+    sql = text("""
+        SELECT Id, Ts, Type, Code, Message
+        FROM dbo.Events
+        WHERE MachineId = :mid
+        ORDER BY Ts DESC;
+    """)
+    with engine.connect() as conn:
+        rows = conn.execute(sql, {"mid": machine_id}).all()
+        logs = [{
+            "id": r.Id,
+            "timestamp": r.Ts.isoformat() if hasattr(r.Ts, "isoformat") else str(r.Ts),
+            "type": r.Type,
+            "code": r.Code,
+            "message": r.Message
+        } for r in rows]
     return jsonify(logs)
 
 if __name__ == "__main__":

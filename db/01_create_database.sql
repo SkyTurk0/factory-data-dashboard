@@ -1,0 +1,5 @@
+IF DB_ID('FactoryDB') IS NULL
+BEGIN
+  CREATE DATABASE FactoryDB;
+END;
+GO
