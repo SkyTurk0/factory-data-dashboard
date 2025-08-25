@@ -1,4 +1,4 @@
-from flask import Flask, jsonify
+from flask import Flask, jsonify, request
 from flask_cors import CORS
 from sqlalchemy import text
 from db import engine
@@ -32,6 +32,55 @@ def get_logs(machine_id: int):
             "message": r.Message
         } for r in rows]
     return jsonify(logs)
+
+# NEW: latest logs via stored procedure (optional machine filter)
+@app.get("/sp/latest-logs")
+def latest_logs():
+    top = int(request.args.get("top", 50))
+    machine_id = request.args.get("machineId")  # may be None
+    with engine.connect() as conn:
+        if machine_id is None:
+            rows = conn.execute(text("EXEC dbo.sp_GetLatestLogs @Top=:t, @MachineId=NULL"), {"t": top}).all()
+        else:
+            rows = conn.execute(text("EXEC dbo.sp_GetLatestLogs @Top=:t, @MachineId=:m"), {"t": top, "m": int(machine_id)}).all()
+    data = [{
+        "id": r.Id,
+        "machineId": r.MachineId,
+        "timestamp": r.Ts.isoformat() if hasattr(r.Ts, "isoformat") else str(r.Ts),
+        "type": r.Type,
+        "code": r.Code,
+        "message": r.Message,
+        "machineName": r.MachineName,
+        "line": r.Line,
+        "severityRank": r.SeverityRank
+    } for r in rows]
+    return jsonify(data)
+
+# NEW: KPI summary via stored procedure (date window)
+@app.get("/sp/kpis")
+def kpi_summary():
+    # Defaults: last 7 days
+    to_ts = request.args.get("to")
+    from_ts = request.args.get("from")
+    if not to_ts:
+        from datetime import datetime, timedelta, timezone
+        now = datetime.now(timezone.utc)
+        to_dt = now
+        from_dt = now - timedelta(days=7)
+        to_ts = to_dt.isoformat(timespec="seconds")
+        from_ts = from_dt.isoformat(timespec="seconds")
+
+    with engine.connect() as conn:
+        rows = conn.execute(text("EXEC dbo.sp_MachineKpiSummary @From=:f, @To=:t"),
+                            {"f": from_ts, "t": to_ts}).all()
+    data = [{
+        "machineId": r.MachineId,
+        "name": r.Name,
+        "line": r.Line,
+        "totalThroughput": int(r.TotalThroughput or 0),
+        "errorCount": int(r.ErrorCount or 0)
+    } for r in rows]
+    return jsonify(data)
 
 if __name__ == "__main__":
     app.run(debug=True)
