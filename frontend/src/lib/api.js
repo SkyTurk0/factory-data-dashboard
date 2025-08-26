@@ -1,4 +1,4 @@
-const BASE = "http://127.0.0.1:5000";  // Your Flask API base URL
+const BASE = import.meta.env.VITE_API_BASE ?? "https://127.0.0.1:5000";  // Flask API base URL
 
 // Fetch list of machines
 export async function getMachines() {
