@@ -19,5 +19,30 @@ services:
       timeout: 5s
       retries: 10
 
+
+  db_init:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    depends_on:
+      mssql:
+        condition: service_healthy
+    env_file:
+      - .env
+    volumes:
+      - ./db:/db:ro
+    command:
+      - /bin/bash
+      - -lc
+      - |
+        set -e;
+        echo "Waiting a moment for SQL to accept logins...";
+        sleep 5;
+        for file in /db/*.sql; do
+          echo "==> Running $$file";
+          /opt/mssql-tools18/bin/sqlcmd -S mssql -U "${DB_USER}" -P "${DB_PASS}" -C -i "$$file";
+        done;
+        echo "All scripts applied.";
+
 volumes:
   mssql_data:
+
+  
