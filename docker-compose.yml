@@ -33,12 +33,18 @@ services:
       - /bin/bash
       - -lc
       - |
-        set -e;
+        set -euo pipefail;
+        if /opt/mssql-tools18/bin/sqlcmd -S mssql -U "${DB_USER}" -P "${DB_PASS}" -C -h -1 -W \
+          -Q "SET NOCOUNT ON; IF DB_ID('${DB_NAME}') IS NULL SELECT 0 ELSE SELECT 1" | grep -q '^1$'; then
+          echo "FactoryDB already exists — skipping init."
+          exit 0
+        fi
+
         echo "Waiting a moment for SQL to accept logins...";
         sleep 5;
         for file in /db/*.sql; do
           echo "==> Running $$file";
-          /opt/mssql-tools18/bin/sqlcmd -S mssql -U "${DB_USER}" -P "${DB_PASS}" -C -i "$$file";
+          /opt/mssql-tools18/bin/sqlcmd -S mssql -U "${DB_USER}" -P "${DB_PASS}" -C -b -i "$$file";
         done;
         echo "All scripts applied.";
 

@@ -1,9 +1,9 @@
 USE FactoryDB;
 GO
 
-IF OBJECT_ID('dbo.Machines','U') IS NOT NULL DROP TABLE dbo.Machines;
-IF OBJECT_ID('dbo.Events','U')   IS NOT NULL DROP TABLE dbo.Events;
 IF OBJECT_ID('dbo.Telemetry','U') IS NOT NULL DROP TABLE dbo.Telemetry;
+IF OBJECT_ID('dbo.Events','U')    IS NOT NULL DROP TABLE dbo.Events;
+IF OBJECT_ID('dbo.Machines','U')  IS NOT NULL DROP TABLE dbo.Machines;
 GO
 
 CREATE TABLE dbo.Machines (
