@@ -13,3 +13,21 @@ export async function getLogs(machineId) {
   if (!res.ok) throw new Error("Failed to fetch logs");
   return res.json();
 }
+
+export async function getLatestLogs({ top = 50, machineId } = {}) {
+  const url = new URL(`${BASE}/sp/latest-logs`);
+  url.searchParams.set("top", String(top));
+  if (machineId) url.searchParams.set("machineId", String(machineId));
+  const res = await fetch(url);
+  if (!res.ok) throw new Error("Failed to fetch latest logs");
+  return res.json();
+}
+
+export async function getKpis({ fromISO, toISO} = {}) {
+  const url = new URL(`${BASE}/sp/kpis`);
+  if (fromISO) url.searchParams.set("from", fromISO);
+  if (toISO) url.searchParams.set("to", toISO);
+  const res = await fetch(url);
+  if (!res.ok) throw new Error("Failed to fetch KPIs");
+  return res.json();
+}
