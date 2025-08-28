@@ -1,0 +1,35 @@
+{
+  "openapi": "3.0.3",
+  "info": { "title": "Factory Data API", "version": "1.0.0" },
+  "paths": {
+    "/health": { "get": { "summary": "Health check", "responses": { "200": { "description": "OK" } } } },
+    "/machines": { "get": { "summary": "List machines", "responses": { "200": { "description": "OK" } } } },
+    "/logs/{machineId}": {
+      "get": {
+        "summary": "Logs for a machine",
+        "parameters": [{ "name": "machineId", "in": "path", "required": true, "schema": { "type": "integer" } }],
+        "responses": { "200": { "description": "OK" }, "400": { "description": "Bad Request" } }
+      }
+    },
+    "/sp/latest-logs": {
+      "get": {
+        "summary": "Latest logs via stored procedure",
+        "parameters": [
+          { "name": "top", "in": "query", "schema": { "type": "integer", "minimum": 1, "maximum": 1000 } },
+          { "name": "machineId", "in": "query", "schema": { "type": "integer", "minimum": 1 } }
+        ],
+        "responses": { "200": { "description": "OK" }, "400": { "description": "Bad Request" } }
+      }
+    },
+    "/sp/kpis": {
+      "get": {
+        "summary": "KPI summary for date window",
+        "parameters": [
+          { "name": "from", "in": "query", "schema": { "type": "string", "format": "date-time" } },
+          { "name": "to",   "in": "query", "schema": { "type": "string", "format": "date-time" } }
+        ],
+        "responses": { "200": { "description": "OK" }, "400": { "description": "Bad Request" } }
+      }
+    }
+  }
+}
