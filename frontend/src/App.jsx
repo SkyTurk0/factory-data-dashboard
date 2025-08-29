@@ -1,6 +1,7 @@
 import MachinesTable from "./components/MachinesTable";
 import KpiCards from "./components/KpiCards";
 import ErrorsBarChart from "./components/ErrorsBarChart";
+import ThroughputLineChart from "./components/ThroughputLineChart";
 
 export default function App() {
   return (
@@ -9,6 +10,8 @@ export default function App() {
       <p style={{ color: "#555" }}>
         KPI overview, recent errors, and machine logs. Backend: Flask + SQL Server (T-SQL procs).
       </p>
+
+      <ThroughputLineChart />
       <KpiCards />
       <div style={{ display: "grid", gridTemplateColumns: "3fr 2fr", gap: 16 }}>
         <div>

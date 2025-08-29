@@ -31,3 +31,14 @@ export async function getKpis({ fromISO, toISO} = {}) {
   if (!res.ok) throw new Error("Failed to fetch KPIs");
   return res.json();
 }
+
+export async function getThroughput({ fromISO, toISO, bucket = "hour", machineId } = {}) {
+  const url = new URL(`${BASE}/metrics/throughput`);
+  if (fromISO) url.searchParams.set("from", fromISO);
+  if (toISO) url.searchParams.set("to", toISO);
+  if (bucket) url.searchParams.set("bucket", bucket);
+  if (machineId) url.searchParams.set("machineId", String(machineId));
+  const r = await fetch(url);
+  if (!r.ok) throw new Error("Failed to fetch throughput");
+  return r.json();
+}

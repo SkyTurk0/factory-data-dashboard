@@ -128,6 +128,63 @@ def kpi_summary():
     } for r in rows]
     return jsonify(data)
 
+@app.get("/metrics/throughput")
+def throughput_metric():
+    # params
+    bucket = (request.args.get("bucket") or "hour").lower()
+    if bucket not in ("hour", "day"):
+        abort(400, "Query param 'bucket' must be 'hour' or 'day'")
+
+    mid = request.args.get("machineId")
+    machine_id = None
+    if mid is not None:
+        try:
+            machine_id = int(mid)
+            if machine_id < 1:
+                raise ValueError()
+        except Exception:
+            abort(400, "Query param 'machineId' must be a positive integer")
+
+    to_dt   = parse_iso_arg("to")
+    from_dt = parse_iso_arg("from")
+    if to_dt is None or from_dt is None:
+        from datetime import datetime, timedelta, timezone
+        to_dt = datetime.now(timezone.utc)
+        from_dt = to_dt - timedelta(days=7)
+
+    # SQL Server 2022 supports DATETRUNC
+    bucket_unit = "hour" if bucket == "hour" else "day"
+    base_sql = f"""
+        SELECT 
+            DATETRUNC({bucket_unit}, Ts) AS BucketTs,
+            SUM(Throughput)              AS TotalThroughput
+        FROM dbo.Telemetry
+        WHERE Ts BETWEEN :f AND :t
+          {"AND MachineId = :m" if machine_id else ""}
+        GROUP BY DATETRUNC({bucket_unit}, Ts)
+        ORDER BY BucketTs
+    """
+
+    params = {"f": from_dt.isoformat(), "t": to_dt.isoformat()}
+    if machine_id:
+        params["m"] = machine_id
+
+    with engine.connect() as conn:
+        rows = conn.execute(text(base_sql), params).all()
+
+    series = [
+        {"ts": (r.BucketTs.isoformat() if hasattr(r.BucketTs, "isoformat") else str(r.BucketTs)),
+         "throughput": int(r.TotalThroughput or 0)}
+        for r in rows
+    ]
+    return jsonify({
+        "bucket": bucket,
+        "from": from_dt.isoformat(),
+        "to": to_dt.isoformat(),
+        "machineId": machine_id,
+        "points": series
+    })
+
 @app.get("/health")
 def health():
     try:
