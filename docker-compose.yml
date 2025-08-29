@@ -48,6 +48,48 @@ services:
         done;
         echo "All scripts applied.";
 
+
+  backend:
+    build:
+      context: .
+      dockerfile: ./backend/Dockerfile
+    container_name: factory_backend
+    env_file:
+      - .env
+    environment:
+      # override DB_SERVER to use the service name inside the Docker network
+      DB_SERVER: mssql,1433
+      DB_NAME: ${DB_NAME:-FactoryDB}
+      DB_USER: ${DB_USER:-sa}
+      DB_PASS: ${DB_PASS:-YourStrong!Passw0rd}
+      ODBC_DRIVER: ${ODBC_DRIVER:-ODBC Driver 18 for SQL Server}
+    volumes:
+      - ./backend:/app
+      - /app/.venv  # avoid mounting host venv into container
+    ports:
+      - "5000:5000"
+    depends_on:
+      mssql:
+        condition: service_healthy
+      db_init:
+        condition: service_completed_successfully
+
+  frontend:
+    build: ./frontend
+    container_name: factory_frontend
+    environment:
+      # Browser will call backend on your host at :5000
+      VITE_API_BASE: "http://localhost:5000"
+      # Optional: polling helps file change detection on some setups
+      CHOKIDAR_USEPOLLING: "true"
+    volumes:
+      - ./frontend:/usr/src/app
+      - /usr/src/app/node_modules   # keep node_modules inside container
+    ports:
+      - "5173:5173"
+    depends_on:
+      - backend
+
 volumes:
   mssql_data:
 

@@ -1,0 +1,11 @@
+# .dockerignore at repo root
+.git
+.gitignore
+.vscode
+**/__pycache__/
+**/*.pyc
+backend/.venv
+frontend/node_modules
+frontend/dist
+docs
+*.pdf

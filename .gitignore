@@ -21,3 +21,4 @@ dist/
 
 # Secrets
 .env
+frontend/.env
