@@ -59,10 +59,10 @@ services:
     environment:
       # override DB_SERVER to use the service name inside the Docker network
       DB_SERVER: mssql,1433
-      DB_NAME: ${DB_NAME:-FactoryDB}
-      DB_USER: ${DB_USER:-sa}
-      DB_PASS: ${DB_PASS:-YourStrong!Passw0rd}
-      ODBC_DRIVER: ${ODBC_DRIVER:-ODBC Driver 18 for SQL Server}
+      DB_NAME: ${DB_NAME}
+      DB_USER: ${DB_USER}
+      DB_PASS: ${DB_PASS}
+      ODBC_DRIVER: ${ODBC_DRIVER}
     volumes:
       - ./backend:/app
       - /app/.venv  # avoid mounting host venv into container
@@ -89,6 +89,29 @@ services:
       - "5173:5173"
     depends_on:
       - backend
+
+  etl_run:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    working_dir: /app
+    command: ["python", "-u", "etl/ingest_logs.py"]
+    env_file: [.env]
+    environment:
+      DB_SERVER: mssql,1433
+      DB_NAME: ${DB_NAME}
+      DB_USER: ${DB_USER}
+      DB_PASS: ${DB_PASS}
+      ODBC_DRIVER: ${ODBC_DRIVER}
+      DATA_DIR: /app/data
+      STATE_DIR: /app/.etl_state
+    volumes:
+      - ./:/app:rw
+    depends_on:
+      mssql:
+        condition: service_healthy
+    restart: "no"
+
 
 volumes:
   mssql_data:

@@ -1,0 +1,5 @@
+[
+  {"MachineName":"Packaging Unit","Ts":"2025-08-01T09:00:00Z","Temperature":52.4,"Vibration":1.2,"Throughput":180},
+  {"MachineName":"CNC Machine","Ts":"2025-08-01T09:00:00Z","Temperature":63.1,"Vibration":2.1,"Throughput":120},
+  {"MachineName":"Assembly Robot","Ts":"2025-08-01T09:00:00Z","Temperature":44.2,"Vibration":0.9,"Throughput":210}
+]

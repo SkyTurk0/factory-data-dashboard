@@ -1,0 +1,4 @@
+MachineName,Type,Code,Message,Ts
+Packaging Unit,ERROR,E42,Motor vibration detected,2025-08-01T09:15:00Z
+CNC Machine,ERROR,E99,Overheating detected,2025-08-01T10:02:00Z
+Assembly Robot,STOP,,Operator stop for inspection,2025-08-01T10:15:00Z
