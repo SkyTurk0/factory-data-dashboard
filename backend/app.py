@@ -1,9 +1,10 @@
-from flask import Flask, jsonify, request, send_from_directory, abort
+from flask import Flask, jsonify, request, send_from_directory, abort, send_file
 from flask_cors import CORS
 from sqlalchemy import text
 from dateutil.parser import isoparse
 from db import engine
 from logging_config import init_json_logging
+from reports import generate_kpi_report
 import os
 
 app = Flask(__name__)
@@ -184,6 +185,12 @@ def throughput_metric():
         "machineId": machine_id,
         "points": series
     })
+
+@app.get("/reports/latest")
+def download_latest_report():
+    # Generate on-demand (simple & always fresh)
+    path = generate_kpi_report()
+    return send_file(path, as_attachment=True, download_name=path.split("/")[-1])
 
 @app.get("/health")
 def health():
