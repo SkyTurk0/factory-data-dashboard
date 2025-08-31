@@ -1,34 +1,618 @@
 {
   "openapi": "3.0.3",
-  "info": { "title": "Factory Data API", "version": "1.0.0" },
+  "info": {
+    "title": "Factory Data API",
+    "version": "1.0.0",
+    "description": "REST API for a factory monitoring system with machine logs, telemetry, and KPI tracking"
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    },
+    "schemas": {
+      "Machine": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["RUNNING", "IDLE", "DOWN"]
+          },
+          "line": {
+            "type": "string"
+          }
+        }
+      },
+      "Log": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "type": {
+            "type": "string",
+            "enum": ["START", "STOP", "ERROR", "MAINT"]
+          },
+          "code": {
+            "type": "string",
+            "nullable": true
+          },
+          "message": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "ExtendedLog": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "machineId": {
+            "type": "integer"
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "type": {
+            "type": "string",
+            "enum": ["START", "STOP", "ERROR", "MAINT"]
+          },
+          "code": {
+            "type": "string",
+            "nullable": true
+          },
+          "message": {
+            "type": "string",
+            "nullable": true
+          },
+          "machineName": {
+            "type": "string"
+          },
+          "line": {
+            "type": "string"
+          },
+          "severityRank": {
+            "type": "integer"
+          }
+        }
+      },
+      "KpiSummary": {
+        "type": "object",
+        "properties": {
+          "machineId": {
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "line": {
+            "type": "string"
+          },
+          "totalThroughput": {
+            "type": "integer"
+          },
+          "errorCount": {
+            "type": "integer"
+          }
+        }
+      },
+      "ThroughputPoint": {
+        "type": "object",
+        "properties": {
+          "ts": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "throughput": {
+            "type": "integer"
+          }
+        }
+      },
+      "ThroughputSeries": {
+        "type": "object",
+        "properties": {
+          "bucket": {
+            "type": "string",
+            "enum": ["hour", "day"]
+          },
+          "from": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "to": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "machineId": {
+            "type": "integer",
+            "nullable": true
+          },
+          "points": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ThroughputPoint"
+            }
+          }
+        }
+      },
+      "LoginRequest": {
+        "type": "object",
+        "required": ["username", "password"],
+        "properties": {
+          "username": {
+            "type": "string"
+          },
+          "password": {
+            "type": "string",
+            "format": "password"
+          }
+        }
+      },
+      "AuthResponse": {
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string"
+          },
+          "user": {
+            "type": "object",
+            "properties": {
+              "username": {
+                "type": "string"
+              },
+              "role": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      },
+      "Error": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string"
+          },
+          "detail": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  },
+  "security": [
+    { "bearerAuth": [] }
+  ],
   "paths": {
-    "/health": { "get": { "summary": "Health check", "responses": { "200": { "description": "OK" } } } },
-    "/machines": { "get": { "summary": "List machines", "responses": { "200": { "description": "OK" } } } },
+    "/health": {
+      "get": {
+        "summary": "Health check",
+        "description": "Check if the API and database connection are healthy",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/login": {
+      "post": {
+        "summary": "Authenticate user",
+        "description": "Login with username and password to receive JWT token",
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Authentication successful",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Missing credentials",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid credentials",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/me": {
+      "get": {
+        "summary": "Get current user",
+        "description": "Return information about the authenticated user",
+        "responses": {
+          "200": {
+            "description": "User information",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "user": {
+                      "type": "object",
+                      "properties": {
+                        "username": {
+                          "type": "string"
+                        },
+                        "role": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/machines": {
+      "get": {
+        "summary": "List machines",
+        "description": "Get all machines in the factory",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Machine"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/logs/{machineId}": {
       "get": {
         "summary": "Logs for a machine",
-        "parameters": [{ "name": "machineId", "in": "path", "required": true, "schema": { "type": "integer" } }],
-        "responses": { "200": { "description": "OK" }, "400": { "description": "Bad Request" } }
+        "description": "Get all logs for a specific machine",
+        "security": [],
+        "parameters": [
+          {
+            "name": "machineId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Log"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/sp/latest-logs": {
       "get": {
         "summary": "Latest logs via stored procedure",
+        "description": "Get the latest logs across all machines or filtered by machine ID",
+        "security": [],
         "parameters": [
-          { "name": "top", "in": "query", "schema": { "type": "integer", "minimum": 1, "maximum": 1000 } },
-          { "name": "machineId", "in": "query", "schema": { "type": "integer", "minimum": 1 } }
+          {
+            "name": "top",
+            "in": "query",
+            "description": "Maximum number of logs to return",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 1000,
+              "default": 50
+            }
+          },
+          {
+            "name": "machineId",
+            "in": "query",
+            "description": "Optional filter by machine ID",
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
         ],
-        "responses": { "200": { "description": "OK" }, "400": { "description": "Bad Request" } }
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ExtendedLog"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/sp/kpis": {
       "get": {
         "summary": "KPI summary for date window",
+        "description": "Get KPI metrics for all machines within a specific time window",
+        "security": [],
         "parameters": [
-          { "name": "from", "in": "query", "schema": { "type": "string", "format": "date-time" } },
-          { "name": "to",   "in": "query", "schema": { "type": "string", "format": "date-time" } }
+          {
+            "name": "from",
+            "in": "query",
+            "description": "Start date-time (ISO-8601)",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "description": "End date-time (ISO-8601)",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          }
         ],
-        "responses": { "200": { "description": "OK" }, "400": { "description": "Bad Request" } }
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/KpiSummary"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/metrics/throughput": {
+      "get": {
+        "summary": "Throughput metrics",
+        "description": "Get throughput metrics aggregated by hour or day",
+        "parameters": [
+          {
+            "name": "bucket",
+            "in": "query",
+            "description": "Aggregation level (hour or day)",
+            "schema": {
+              "type": "string",
+              "enum": ["hour", "day"],
+              "default": "hour"
+            }
+          },
+          {
+            "name": "from",
+            "in": "query",
+            "description": "Start date-time (ISO-8601)",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "description": "End date-time (ISO-8601)",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "machineId",
+            "in": "query",
+            "description": "Optional filter by machine ID",
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ThroughputSeries"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/reports/latest": {
+      "get": {
+        "summary": "Download latest KPI report",
+        "description": "Generate and download an Excel report with the latest KPI data (Admin role required)",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Excel file download",
+            "content": {
+              "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Insufficient permissions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
       }
     }
   }
