@@ -49,6 +49,16 @@ A full-stack dashboard for factory monitoring with a Flask API, SQL Server (T-SQ
 ├── .env.example             # Env template
 └── README.md
 ```
+## 📸 Screenshots
+
+### Full Dashboard (React + Flask + SQL Server)
+![Dashboard Overview](docs/screenshots/dashboard_overview.png)
+
+### Machine Logs and Error Distribution
+![Dashboard Detail](docs/screenshots/dashboard_detail.png)
+
+### REST API (Swagger UI with JWT-protected endpoints)
+![API Docs](docs/screenshots/api_docs.png)
 
 ## Quickstart (Docker)
 
