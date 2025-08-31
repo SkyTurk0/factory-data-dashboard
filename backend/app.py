@@ -5,6 +5,9 @@ from dateutil.parser import isoparse
 from db import engine
 from logging_config import init_json_logging
 from reports import generate_kpi_report
+from werkzeug.security import check_password_hash
+from sqlalchemy import text
+from auth import make_token, require_auth
 import os
 
 app = Flask(__name__)
@@ -45,6 +48,29 @@ def parse_iso_arg(name, default=None):
     except Exception:
         abort(400, f"Query param '{name}' must be ISO-8601 datetime (e.g. 2025-08-25T00:00:00Z)")
 
+
+@app.post("/auth/login")
+def login():
+    body = request.get_json(silent=True) or {}
+    username = (body.get("username") or "").strip()
+    password = (body.get("password") or "")
+    if not username or not password:
+        abort(400, "username and password required")
+
+    with engine.connect() as conn:
+        row = conn.execute(text("SELECT Username, PasswordHash, Role FROM dbo.Users WHERE Username=:u"),
+                           {"u": username}).fetchone()
+    if not row or not check_password_hash(row.PasswordHash, password):
+        abort(401, "invalid credentials")
+
+    token = make_token({"sub": row.Username, "role": row.Role})
+    return {"token": token, "user": {"username": row.Username, "role": row.Role}}
+
+@app.get("/auth/me")
+@require_auth()
+def me():
+    u = getattr(g, "user", {})
+    return {"user": {"username": u.get("sub"), "role": u.get("role")}}
 
 @app.get("/machines")
 def get_machines():
@@ -187,6 +213,7 @@ def throughput_metric():
     })
 
 @app.get("/reports/latest")
+@require_auth(roles=["Admin"])
 def download_latest_report():
     # Generate on-demand (simple & always fresh)
     path = generate_kpi_report()

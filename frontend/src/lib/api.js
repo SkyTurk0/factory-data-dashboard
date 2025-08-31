@@ -1,4 +1,26 @@
+import { getToken } from "./auth";
+
 const BASE = import.meta.env.VITE_API_BASE ?? "https://127.0.0.1:5000";  // Flask API base URL
+
+async function request(path, opts = {}) {
+  const headers = new Headers(opts.headers || {});
+  headers.set("Accept", "application/json");
+  const t = getToken();
+  if (t) headers.set("Authorization", `Bearer ${t}`);
+  const r = await fetch(`${BASE}${path}`, { ...opts, headers });
+  if (!r.ok) throw new Error(`${r.status} ${r.statusText}`);
+  return r.json();
+}
+
+export const api = { request };
+
+export async function login(username, password) {
+  return request("/auth/login", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ username, password }),
+  });
+}
 
 // Fetch list of machines
 export async function getMachines() {
@@ -38,7 +60,9 @@ export async function getThroughput({ fromISO, toISO, bucket = "hour", machineId
   if (toISO) url.searchParams.set("to", toISO);
   if (bucket) url.searchParams.set("bucket", bucket);
   if (machineId) url.searchParams.set("machineId", String(machineId));
-  const r = await fetch(url);
+  const headers = new Headers();
+  const t = getToken(); if (t) headers["Authorization"] = `Bearer ${t}`;
+  const r = await fetch(url, { headers });
   if (!r.ok) throw new Error("Failed to fetch throughput");
   return r.json();
 }
