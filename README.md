@@ -145,7 +145,3 @@ Script: [`etl.ingest_logs.main`](etl/ingest_logs.py)
 - ODBC errors on local runs: install “ODBC Driver 18 for SQL Server” and configure `ODBC_DRIVER` to match.
 - If DB isn’t ready, `db_init` waits for health; re-run `docker compose up` if needed.
 - Update admin creds: set env then re-run `create_admin.py` (set `ADMIN_FORCE=1` to overwrite).
-
-## License
-
-MIT
